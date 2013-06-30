@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <script src="lib/jquery-2.0.2.min.js"></script>
+    <script src="lib/nicoscreen.js"></script>
+    <script src="js/app.js"></script>
+</head>
+<style>
+#wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-color: #8af;
+}
+</style>
+<script>
+$(function(){
+    app.request_bookmarks('http://localhost/', {dataType:'jsonp'})
+        .done(function(comments){
+            app.show(comments, '#wrapper');
+        })
+    ;
+});
+</script>
+<body>
+    <div id="wrapper"></div>
+</body>
+</html>
