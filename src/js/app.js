@@ -3,7 +3,35 @@
 var app = (function(undefined){
     var self = {};
 
-    self.request_bookmarks = function(url, opt)
+    var _timer = null;
+    var _index = 0;
+    var _comments = [];
+
+    var _options = {
+        interval: 1000,
+        duration: 5000
+    };
+
+    var _css = {
+        'color': '#fff',
+        'text-shadow': '2px 2px 2px #000',
+        'font-size': '36px',
+        //
+        'position': 'fixed',
+        'background-color': 'transparent',
+        'z-index': 99999,
+        'margin': 0,
+        'padding': 0,
+        'line-height': 1,
+        'overflow': 'visible',
+        'white-space': 'nowrap',
+        'cursor': 'default',
+        'user-select': 'none',
+        '-moz-user-select': 'none',
+        '-webkit-user-select': 'none'
+    };
+
+    self.requestBookmarks = function(url, opt)
     {
         var opt = $.extend({
             url: "http://b.hatena.ne.jp/entry/jsonlite/",
@@ -14,77 +42,88 @@ var app = (function(undefined){
         var def = $.Deferred();
 
         $.ajax(opt).done(function(json){
-            var comments = $.map(json.bookmarks, function(data){
-                if (data.comment && data.comment.length)
-                {
-                    return data.comment;
-                }
-            });
+
+            var comments = [];
+
+            if (json && json.bookmarks)
+            {
+                comments = $.map(json.bookmarks, function(data){
+                    if (data.comment && data.comment.length)
+                    {
+                        return data.comment;
+                    }
+                });
+            }
+
             def.resolve(comments);
         });
         return def.promise();
     };
 
-    function create_elements()
+    self.started = function()
     {
-        if ($('#nicoscreen-wrap').size() !== 0)
+        return _timer !== null;
+    };
+
+    self.start = function(comments, options, css)
+    {
+        if (comments.length === 0)
         {
-            return $('#nicoscreen-wrap');
+            comments = ['No Comments.'];
         }
-        else
+
+        self.stop();
+
+        _comments = comments;
+        _options = $.extend(_options, options);
+        _css = $.extend(_css, css);
+
+        _timer = setInterval(draw, _options.interval);
+    }
+
+    self.stop = function()
+    {
+        if (_timer !== null)
         {
-            return $('<div id="nicoscreen-wrap"></div>')
-                .css({
-                    position: 'fixed',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    right: 0,
-                    'z-index': 99999
-                })
-                .append($('<div id="nicoscreen"></div>').css({
-                    left: 0,
-                    top: 0,
-                    width: '100%',
-                    height: '100%'
-                }))
-                .prependTo('body')
-            ;
+            clearInterval(_timer);
+            _timer = null;
         }
-    };
+    }
 
-    function delete_elements()
+    function draw()
     {
-        $('#nicoscreen-wrap').remove();
-    };
+        if (_index >= _comments.length)
+        {
+            _index = 0;
+        }
 
-    self.is = function()
-    {
-        return $('#nicoscreen-wrap').size() !== 0;
-    };
+        var comment = _comments[_index++];
 
-    self.show = function(comments)
-    {
-        create_elements();
+        var elem = $('<div>')
+            .css(_css)
+            .text(comment)
+            .hide()
+            .appendTo('body')
+        ;
 
-        nicoscreen.set({
-            comments:comments,
-            base:{
-                color: "white",
-                speed: "fast",
-                font_size: "48px",
-                loop: true
-            }
+        var cx = document.documentElement.clientWidth;
+        var cy = document.documentElement.clientHeight;
+
+        var ox = elem.width();
+        var oy = elem.height();
+
+        var top = parseInt(Math.random() * (cy - oy));
+
+        elem.css({left:cx, top:top});
+
+        elem.show().animate({
+            left: -ox,
+        },{
+            duration: _options.duration,
+            easing: 'linear',
+            complete: function(){ $(this).remove() },
         });
-
-        nicoscreen.start();
-    };
-
-    self.hide = function()
-    {
-        delete_elements();
-    };
+    }
 
     return self;
-}())
-
+}());

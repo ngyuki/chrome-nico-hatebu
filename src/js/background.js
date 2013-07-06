@@ -9,8 +9,8 @@ chrome.browserAction.onClicked.addListener(function(tab){
 
     function sendMessage(action, params)
     {
+        var params = $.extend(params || {}, {action:action});
         var def = $.Deferred();
-        var params = $.extend(params || {}, { action:action });
 
         chrome.tabs.sendMessage(tab.id, params, function(response){
             def.resolve(response);
@@ -19,31 +19,25 @@ chrome.browserAction.onClicked.addListener(function(tab){
         return def.promise();
     }
 
-    sendMessage('is').done(function(response){
-        if (!response.retval)
+    sendMessage('started').done(function(response){
+
+        if (!response.started)
         {
             $.Deferred().resolve()
                 .then(function(){
                     chrome.browserAction.setIcon({path:'img/icon-run.png', tabId:tab.id});
                 })
                 .then(function(){
-                    var comments = [];
-                    for (var i=0; i<10; i++)
-                    {
-                        comments.push("Now Loading...");
-                    }
-                    return sendMessage('show', {comments:["Now Loading..."]});
+                    return sendMessage('start', {comments:["Now Loading..."]});
                 })
                 .then(function(){
-                    return app.request_bookmarks(tab.url);
+                    return app.requestBookmarks(tab.url);
                 })
                 .then(function(comments){
-                    console.log('comments', comments.length);
-                    return sendMessage('show', {comments:comments});
-                })
-                .then(function(){
-                    console.log('show', response);
-                    chrome.browserAction.setIcon({path:'img/icon-run.png', tabId:tab.id});
+                    var count = comments.length + '';
+                    count.length > 4 && (count = '9999');
+                    chrome.browserAction.setBadgeText({text:count, tabId:tab.id});
+                    return sendMessage('start', {comments:comments});
                 })
             ;
         }
@@ -51,10 +45,10 @@ chrome.browserAction.onClicked.addListener(function(tab){
         {
             $.Deferred().resolve()
                 .then(function(){
-                    return sendMessage('hide');
+                    return sendMessage('stop');
                 })
                 .then(function(){
-                    console.log('hide', response);
+                    chrome.browserAction.setBadgeText({text:'', tabId:tab.id});
                     chrome.browserAction.setIcon({path:'img/icon.png', tabId:tab.id});
                 })
             ;
